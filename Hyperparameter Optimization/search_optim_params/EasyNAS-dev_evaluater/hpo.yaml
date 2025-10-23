@@ -1,0 +1,57 @@
+root_path: &root_path /home/ma-user/SatBenchmark/optimize/logs/kissat/EasyNas6/      #Hyper Parameter Optimisation
+
+search_space: &space    #Define the search space
+  restartint: !search_space 1:1e4:1 # default 1
+  reduceint: !search_space 2:1e5:1 # default 1e3
+  decay: !search_space 1:200:1 # default 50   ["cat". 'dog']  --restartint 
+  time: 10000
+  # time: 200  original
+
+engine: &engine
+  submodule_name: engines.BashEngine  
+  args:
+    bash_cmd: "cd /home/ma-user/SatBenchmark/optimize/EasyNAS-dev_evaluater && bash test_cnf.sh"      ### ###
+    eval_names: ['time']    #评估时间..  maximize
+
+
+searcher: &searcher
+  submodule_name: src.searcher.EvolutionAlgorithm  #search algorithm choose
+  args:         #每个module需要传入的参数...
+    num_epoch: 8
+    num_survive: 8
+    num_crossover: 0
+    num_mutation: 8
+    prob_mutation: 0.3
+    init_points: 
+      - {restartint: [1], reduceint: [1000], decay: [50]}
+      - {restartint: [2], reduceint: [1000], decay: [50]}
+      - {restartint: [926], reduceint: [3630], decay: [1]}
+      - {restartint: [1], reduceint: [100], decay: [50]}
+      - {restartint: [91], reduceint: [27], decay: [1]}
+      - {restartint: [4], reduceint: [1570], decay: [1]}
+      - {restartint: [91], reduceint: [27], decay: [1]}
+      - {restartint: [7361], reduceint: [556], decay: [1]}
+    num_reward_one_deal: 1
+
+contractor: &contractor   #set the evaluation strategy
+  submodule_name: src.evaluater.Contractor
+  args:
+    eval_engines: [*engine]
+    num_workers: 8
+    log_dir: !join [*root_path, eval_worker/]
+
+search_hooks: &search_hooks
+  ckpt_hook:
+    submodule_name: SearchCkptHOOK
+    args:
+      priority: 30
+      save_root: !join [*root_path, search_ckpt]
+
+
+engine:   #Begin the search
+  submodule_name: engines.SearchEngine
+  args:
+    search_space: *space
+    searcher: *searcher
+    contractor: *contractor
+    hooks: *search_hooks
